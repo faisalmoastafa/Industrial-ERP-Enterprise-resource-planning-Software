@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    width: 480px; height: 320px;
+    background: linear-gradient(135deg, #0a0e27 0%, #1a1f3a 100%);
+    display: flex; flex-direction: column;
+    justify-content: center; align-items: center;
+    font-family: 'Segoe UI', sans-serif;
+    border-radius: 16px;
+    overflow: hidden;
+    -webkit-app-region: drag;
+    user-select: none;
+  }
+
+  .logo-ring {
+    position: relative;
+    width: 110px; height: 110px;
+    display: flex; align-items: center; justify-content: center;
+    margin-bottom: 18px;
+  }
+  .logo-ring::before {
+    content: '';
+    position: absolute;
+    inset: -6px;
+    border-radius: 50%;
+    background: conic-gradient(#00d4ff, #0066ff, #8a2be2, #ff7a00, #00d4ff);
+    animation: spin 3s linear infinite;
+    filter: drop-shadow(0 0 12px #00d4ff);
+  }
+  .logo-ring::after {
+    content: '';
+    position: absolute;
+    inset: 6px;
+    background: #0d1530;
+    border-radius: 50%;
+  }
+  .logo-ring img {
+    position: relative;
+    z-index: 10;
+    width: 72px; height: 72px;
+    border-radius: 50%;
+    object-fit: contain;
+    filter: drop-shadow(0 0 8px rgba(0,150,255,0.6));
+  }
+
+  h1 {
+    color: #fff;
+    font-size: 1.5rem;
+    font-weight: 700;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+  }
+  p {
+    color: #8ebeff;
+    font-size: 0.78rem;
+    margin-top: 5px;
+    letter-spacing: 4px;
+    text-transform: uppercase;
+    opacity: 0.8;
+  }
+
+  .bar-wrap {
+    width: 280px; height: 3px;
+    background: rgba(255,255,255,0.08);
+    border-radius: 4px;
+    margin-top: 28px;
+    overflow: hidden;
+  }
+  .bar {
+    height: 100%;
+    background: linear-gradient(90deg, #0066ff, #00d4ff, #8a2be2);
+    border-radius: 4px;
+    animation: load 2.8s ease-in-out infinite;
+  }
+
+  .status {
+    color: #8ebeff;
+    font-size: 0.72rem;
+    margin-top: 10px;
+    opacity: 0.6;
+    letter-spacing: 1px;
+  }
+
+  @keyframes spin {
+    from { transform: rotate(0deg); }
+    to   { transform: rotate(360deg); }
+  }
+  @keyframes load {
+    0%   { width: 0%;   opacity: 1; }
+    80%  { width: 100%; opacity: 1; }
+    100% { width: 100%; opacity: 0; }
+  }
+</style>
+</head>
+<body>
+
+  <div class="logo-ring">
+    <img id="splash-logo" src="logo.png" alt="Industrial ERP">
+  </div>
+
+  <h1 id="splash-title">Industrial ERP</h1>
+  <p id="splash-tagline">Industrial ERP System</p>
+
+  <div class="bar-wrap">
+    <div class="bar"></div>
+  </div>
+
+  <div class="status">Starting services, please wait...</div>
+
+  <script>
+    // Fetch logo, app title and tagline from Laravel once PHP is ready.
+    // Falls back to hardcoded defaults if the request fails or times out.
+    (function () {
+      var img     = document.getElementById('splash-logo');
+      var h1      = document.getElementById('splash-title');
+      var p       = document.getElementById('splash-tagline');
+      var port    = window.__PHP_PORT__ || 8765;
+
+      function tryLoad(attempt) {
+        if (attempt > 20) return;
+        fetch('http://127.0.0.1:' + port + '/splash-logo')
+          .then(function (res) { return res.json(); })
+          .then(function (data) {
+            if (data.logo    && data.logo.startsWith('http'))  img.src       = data.logo;
+            if (data.title)                                     h1.textContent = data.title;
+            if (data.tagline)                                   p.textContent  = data.tagline;
+          })
+          .catch(function () {
+            setTimeout(function () { tryLoad(attempt + 1); }, 500);
+          });
+      }
+
+      tryLoad(1);
+    })();
+  </script>
+
+</body>
+</html>

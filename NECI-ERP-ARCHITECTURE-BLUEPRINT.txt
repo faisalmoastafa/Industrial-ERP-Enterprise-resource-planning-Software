@@ -1,0 +1,827 @@
+================================================================================
+NECI ERP 2.0 — MASTER ARCHITECTURE BLUEPRINT
+================================================================================
+Project   : NECI ERP 2.0 — Industrial Recycling & Manufacturing ERP
+Stack     : Laravel 9 + nwidart/laravel-modules + XAMPP (Apache + MySQL)
+Database  : neci_erp_2
+URL       : http://localhost/neci-erp/public
+Auth      : adminfaisal@neci.com / necishop  (Super Admin)
+Generated : 2026-06-01
+================================================================================
+
+================================================================================
+SECTION A: CORE MANUFACTURING ARCHITECTURE & BUSINESS FLOW PARADIGM
+================================================================================
+
+BUSINESS IDENTITY
+-----------------
+NECI (Super and Cables Industries) operates as an industrial recycling and
+remanufacturing enterprise. The ERP manages the full lifecycle from raw scrap
+material procurement through to finished product sales.
+
+MATERIAL FLOW MATRIX
+--------------------
+
+STAGE 1 — RAW MATERIAL PROCUREMENT (Weight-Based / Kilograms)
+  Input sources: ship generators, transformers, damaged wiring coils, copper
+  scrap, aluminium scrap, and other industrial recyclables.
+  Tracked by: product_quantity (DECIMAL kg) in products table.
+  Product type flag: product_type = 'raw_material'
+  Purchase flow: Purchases module → purchase_items → increments product_quantity
+
+STAGE 2 — MANUFACTURING / STRIPPING PROCESS (Weight Deduction Engine)
+  The ProductionBatchController.store() method executes a DB::transaction():
+  - Locks raw material rows with lockForUpdate()
+  - Validates sufficient kg stock availability
+  - Deducts raw kg from product_quantity
+  - Calculates raw_material_cost = quantity × unit_cost
+  - Calculates wastage_weight = input_weight - output_weight
+  - Computes cost_per_output_kg = total_cost / output_weight
+  Tables: production_batches, production_batch_inputs, production_batch_outputs
+
+STAGE 3 — FINISHED PRODUCT OUTPUT (Count-Based / Pieces)
+  Output products: remanufactured cables, wire spools, copper rods (by Pcs)
+  Product type flag: product_type = 'finished'
+  The engine increments product_quantity (Pcs) using weighted average costing:
+    new_avg_cost = ((current_qty × current_cost) + (new_qty × cost_per_kg))
+                   / (current_qty + new_qty)
+
+STAGE 4 — SALES (Count-Based / Pieces → Revenue)
+  Sales module processes finished products by Pcs count.
+  Decrements product_quantity on sale_items insert.
+  Generates profit tracking via sale total vs. product_cost baseline.
+
+KEY DATABASE TABLE RELATIONSHIPS
+---------------------------------
+products              → Central inventory. product_type distinguishes raw/finished.
+production_batches    → Batch header: date, status, weights, costs.
+production_batch_inputs  → Raw kg consumed per batch (FK: production_batch_id, product_id)
+production_batch_outputs → Finished Pcs produced per batch (FK: production_batch_id, product_id)
+production_batch_expenses → Conversion costs attached to a batch
+purchases / purchase_items → Restocks raw material kg
+sales / sale_items         → Depletes finished product Pcs
+
+================================================================================
+SECTION B: SYSTEM FOLDER MAP & RESPONSIBILITY LEDGER
+================================================================================
+
+PROJECT ROOT: C:\xampp\htdocs\neci-erp\
+│
+├── app/
+│   ├── Http/Controllers/
+│   │   ├── Auth/                    → Laravel default auth scaffolding
+│   │   ├── BackupController.php     → Database backup download handler
+│   │   ├── Controller.php           → Base controller
+│   │   ├── HomeController.php       → Dashboard charts & stats aggregation
+│   │   └── RestoreController.php    → Database restore upload handler
+│   ├── Models/                      → Shared/global Eloquent models
+│   ├── Helpers/                     → Global helper functions (make_reference_id etc.)
+│   ├── Livewire/                    → Livewire components
+│   ├── Providers/                   → AppServiceProvider, AuthServiceProvider
+│   └── Services/                    → Shared service classes
+│
+├── Modules/                         → ALL domain logic lives here (nwidart/laravel-modules)
+│   │
+│   ├── Adjustment/                  → Stock adjustment module
+│   │   ├── Http/Controllers/        → AdjustmentController
+│   │   ├── Entities/                → Adjustment model
+│   │   ├── Database/Migrations/     → adjustments table schema
+│   │   └── Resources/views/         → adjustment blade views
+│   │
+│   ├── Currency/                    → Currency management
+│   │   ├── Http/Controllers/        → CurrencyController
+│   │   ├── Database/Seeders/        → CurrencyDatabaseSeeder (default currencies)
+│   │   └── Resources/views/
+│   │
+│   ├── Expense/                     → Expense tracking module
+│   │   ├── Http/Controllers/        → ExpenseController, ExpenseCategoriesController
+│   │   ├── Entities/                → Expense, ExpenseCategory models
+│   │   └── Database/Migrations/     → expenses, expense_categories tables
+│   │
+│   ├── Manufacturing/               → CORE: Industrial production engine
+│   │   ├── Http/Controllers/
+│   │   │   ├── ProductionBatchController.php       → Main batch CRUD + stock engine
+│   │   │   └── ProductionBatchExpenseController.php → Conversion expense attachment
+│   │   ├── Entities/                → ProductionBatch, ProductionBatchInput,
+│   │   │                              ProductionBatchOutput, ProductionBatchExpense
+│   │   ├── Database/Migrations/     → production_batches, production_batch_inputs,
+│   │   │                              production_batch_outputs, production_batch_expenses
+│   │   └── Resources/views/         → batch create/edit/show/index/report views
+│   │
+│   ├── People/                      → Customers & Suppliers
+│   │   ├── Http/Controllers/        → CustomersController, SuppliersController
+│   │   └── Database/Migrations/     → customers, suppliers tables
+│   │
+│   ├── Product/                     → Product & category management
+│   │   ├── Http/Controllers/        → ProductController, CategoriesController, BarcodeController
+│   │   ├── Entities/                → Product model (isRawMaterial(), isFinished() methods)
+│   │   └── Database/Migrations/     → products, categories tables
+│   │
+│   ├── Purchase/                    → Purchase orders (restocks raw kg)
+│   │   ├── Http/Controllers/        → PurchaseController, PurchasePaymentsController
+│   │   └── Database/Migrations/     → purchases, purchase_items, purchase_payments
+│   │
+│   ├── PurchasesReturn/             → Purchase return processing
+│   ├── Quotation/                   → Sales quotation generation & email
+│   ├── Reports/                     → Aggregated business reports
+│   │
+│   ├── Sale/                        → Sales processing (depletes finished Pcs)
+│   │   ├── Http/Controllers/        → SaleController, SalePaymentsController, PosController
+│   │   └── Database/Migrations/     → sales, sale_items, sale_payments
+│   │
+│   ├── SalesReturn/                 → Sales return processing
+│   │
+│   ├── Setting/                     → App settings & units of measure
+│   │   ├── Http/Controllers/        → SettingController, UnitsController
+│   │   └── Database/Seeders/        → SettingDatabaseSeeder
+│   │
+│   ├── Upload/                      → File upload handler (FilePond)
+│   │
+│   └── User/                        → CRITICAL: Auth, roles, permissions
+│       ├── Http/Controllers/
+│       │   ├── UsersController.php          → User CRUD + role assignment
+│       │   ├── RolesController.php          → Role CRUD + Spatie permission sync
+│       │   ├── ProfileController.php        → Own profile editing
+│       │   └── ActivityLogController.php    → Audit log viewer
+│       ├── Database/Seeders/
+│       │   └── PermissionsTableSeeder.php   → ALL permission tokens + role setup
+│       └── Resources/views/                 → User/role management views
+│
+├── database/
+│   ├── migrations/                  → Core Laravel migrations (users, jobs, media)
+│   └── seeders/
+│       ├── DatabaseSeeder.php       → MASTER SEEDER — orchestrates all module seeders
+│       └── SuperUserSeeder.php      → Creates Super Admin user account
+│
+├── resources/
+│   ├── views/
+│   │   ├── layouts/                 → app.blade.php, sidebar, header, footer, menu
+│   │   ├── includes/                → main-css.blade.php, main-js.blade.php,
+│   │   │                              filepond-css.blade.php, filepond-js.blade.php
+│   │   ├── auth/                    → login, register, password reset views
+│   │   └── errors/                  → error page layouts
+│   └── sass/app.scss                → Main compiled stylesheet (Vite)
+│
+├── public/
+│   ├── build/assets/                → Vite compiled CSS + JS bundles
+│   ├── fonts/bootstrap-icons/       → Bootstrap Icons (LOCAL — no CDN)
+│   ├── js/vendor/                   → jQuery, GSAP, pdfmake, perfect-scrollbar,
+│   │                                  chart.min.js, vfs_fonts.js (ALL LOCAL)
+│   └── vendor/                      → datatables/, filepond/, font-awesome/,
+│                                       sweetalert/ (ALL LOCAL — zero CDN)
+│
+├── routes/web.php                   → Core routes (home, backup, restore)
+├── .env                             → Environment config (NEVER commit)
+└── NECI-ERP-ARCHITECTURE-BLUEPRINT.txt → This file
+
+================================================================================
+SECTION C: MASTER CODE REGISTRY & CRITICAL SNIPPETS
+================================================================================
+
+--------------------------------------------------------------------------------
+C.1 — THE SPATIE PRIVILEGE SYSTEM SEEDER
+         File: Modules/User/Database/Seeders/PermissionsTableSeeder.php
+--------------------------------------------------------------------------------
+
+<?php
+namespace Modules\User\Database\Seeders;
+
+use Illuminate\Database\Seeder;
+use Spatie\Permission\Models\Permission;
+use Spatie\Permission\Models\Role;
+
+class PermissionsTableSeeder extends Seeder
+{
+    public function run()
+    {
+        app()[\Spatie\Permission\PermissionRegistrar::class]->forgetCachedPermissions();
+
+        $permissions = [
+            // User Management
+            'edit_own_profile', 'access_user_management', 'access_activity_log',
+            // Dashboard
+            'show_total_stats', 'show_month_overview', 'show_weekly_sales_purchases',
+            'show_monthly_cashflow', 'show_notifications',
+            // Products
+            'access_products', 'create_products', 'show_products', 'edit_products',
+            'delete_products', 'access_product_categories', 'print_barcodes',
+            // Adjustments
+            'access_adjustments', 'create_adjustments', 'show_adjustments',
+            'edit_adjustments', 'delete_adjustments',
+            // Quotations
+            'access_quotations', 'create_quotations', 'show_quotations',
+            'edit_quotations', 'delete_quotations', 'create_quotation_sales',
+            'send_quotation_mails',
+            // Expenses
+            'access_expenses', 'create_expenses', 'edit_expenses', 'delete_expenses',
+            'access_expense_categories',
+            // Customers
+            'access_customers', 'create_customers', 'show_customers',
+            'edit_customers', 'delete_customers',
+            // Suppliers
+            'access_suppliers', 'create_suppliers', 'show_suppliers',
+            'edit_suppliers', 'delete_suppliers',
+            // Sales & Billing
+            'access_sales', 'create_sales', 'show_sales', 'edit_sales',
+            'delete_sales', 'create_pos_sales', 'access_sale_payments',
+            // Sale Returns
+            'access_sale_returns', 'create_sale_returns', 'show_sale_returns',
+            'edit_sale_returns', 'delete_sale_returns', 'access_sale_return_payments',
+            'edit_sale_amount_received',
+            // Purchases
+            'access_purchases', 'create_purchases', 'show_purchases', 'edit_purchases',
+            'delete_purchases', 'access_purchase_payments', 'edit_purchase_amount_received',
+            // Purchase Returns
+            'access_purchase_returns', 'create_purchase_returns', 'show_purchase_returns',
+            'edit_purchase_returns', 'delete_purchase_returns',
+            'access_purchase_return_payments',
+            // Manufacturing
+            'access_manufacturing', 'create_production_batches', 'edit_production_batches',
+            'show_production_batches', 'delete_production_batches',
+            // Reports
+            'access_reports',
+            // Currencies
+            'access_currencies', 'create_currencies', 'edit_currencies', 'delete_currencies',
+            // Settings
+            'access_settings',
+            // Units
+            'access_units', 'create_units', 'edit_units', 'delete_units',
+            // System Utilities
+            'access_system_utilities', 'access_backup', 'access_restore',
+        ];
+
+        foreach ($permissions as $permission) {
+            Permission::firstOrCreate(['name' => $permission, 'guard_name' => 'web']);
+        }
+
+        app()[\Spatie\Permission\PermissionRegistrar::class]->forgetCachedPermissions();
+
+        // Super Admin — gets ALL permissions
+        $superAdmin = Role::firstOrCreate(['name' => 'Super Admin', 'guard_name' => 'web']);
+        $superAdmin->syncPermissions(
+            Permission::whereIn('name', $permissions)->where('guard_name', 'web')->get()
+        );
+
+        // Admin — BLOCKED from: user management, activity log, system utilities
+        $admin = Role::firstOrCreate(['name' => 'Admin', 'guard_name' => 'web']);
+        $adminPermissions = array_filter(
+            $permissions,
+            fn($p) => $p !== 'access_user_management'
+                   && $p !== 'access_activity_log'
+                   && $p !== 'access_system_utilities'
+        );
+        $admin->syncPermissions(
+            Permission::whereIn('name', $adminPermissions)->where('guard_name', 'web')->get()
+        );
+
+        app()[\Spatie\Permission\PermissionRegistrar::class]->forgetCachedPermissions();
+    }
+}
+
+--------------------------------------------------------------------------------
+C.2 — ROLES CONTROLLER VALIDATION (store + update)
+         File: Modules/User/Http/Controllers/RolesController.php
+--------------------------------------------------------------------------------
+
+// --- store() method validation ---
+$permissions = collect(Arr::flatten($request->input('permissions', [])))
+    ->filter()->unique()->values()->all();
+$request->merge(['permissions' => $permissions]);
+
+$request->validate([
+    'name'           => 'required|string|max:255|unique:roles,name',
+    'permissions'    => 'array',
+    'permissions.*'  => 'string|exists:permissions,name',
+]);
+
+// Block non-Super-Admin from creating a Super Admin role
+abort_if($request->name === 'Super Admin' && !auth()->user()->hasRole('Super Admin'), 403);
+
+// Invalidate Spatie cache BEFORE and AFTER sync
+app(PermissionRegistrar::class)->forgetCachedPermissions();
+$role = Role::create(['name' => $request->name]);
+$role->syncPermissions($permissions);
+app(PermissionRegistrar::class)->forgetCachedPermissions();
+
+// Security audit log
+Log::channel('security')->info('Role created', [
+    'user_id'     => auth()->id(),
+    'role_id'     => $role->id,
+    'role_name'   => $role->name,
+    'permissions' => $permissions,
+]);
+
+// --- update() method validation ---
+$request->validate([
+    'name'           => 'required|string|max:255|unique:roles,name,' . $role->id,
+    'permissions'    => 'array',
+    'permissions.*'  => 'string|exists:permissions,name',
+]);
+
+// Double guard: cannot rename Super Admin, cannot assign Super Admin name without role
+abort_if($role->name === 'Super Admin' && $request->name !== 'Super Admin', 403);
+abort_if($request->name === 'Super Admin' && !auth()->user()->hasRole('Super Admin'), 403);
+
+app(PermissionRegistrar::class)->forgetCachedPermissions();
+$role->syncPermissions($permissions);
+app(PermissionRegistrar::class)->forgetCachedPermissions();
+
+Log::channel('security')->info('Role updated', [
+    'user_id'         => auth()->id(),
+    'role_id'         => $role->id,
+    'old_name'        => $oldName,
+    'new_name'        => $role->name,
+    'old_permissions' => $oldPermissions,
+    'new_permissions' => $permissions,
+]);
+
+--------------------------------------------------------------------------------
+C.3 — INDUSTRIAL WEIGHT-TO-UNIT MATERIAL DEDUCTION ENGINE
+         File: Modules/Manufacturing/Http/Controllers/ProductionBatchController.php
+         Method: store() — DB::transaction() block
+--------------------------------------------------------------------------------
+
+DB::transaction(function () use ($validated) {
+
+    // 1. Lock all involved product rows to prevent race conditions
+    $products = Product::whereIn('id', $productIds)->lockForUpdate()->get()->keyBy('id');
+
+    $inputWeight = 0; $rawMaterialCost = 0; $outputWeight = 0; $conversionCost = 0;
+
+    // 2. PRE-FLIGHT: Validate raw material availability and accumulate input totals
+    foreach ($validated['inputs'] as $row) {
+        $product  = $products[$row['product_id']];
+        $quantity = (float) $row['quantity'];
+
+        if (!$product->isRawMaterial()) {
+            throw ValidationException::withMessages([
+                'inputs' => "{$product->product_name} is not marked as a raw material product.",
+            ]);
+        }
+
+        if ((float) $product->product_quantity < $quantity) {
+            throw ValidationException::withMessages([
+                'inputs' => "Not enough stock for {$product->product_name}. Available: {$product->product_quantity}",
+            ]);
+        }
+
+        $unitCost = (isset($row['unit_cost']) && $row['unit_cost'] !== '')
+            ? (float) $row['unit_cost']
+            : (float) $product->product_cost;
+
+        $inputWeight     += $quantity;
+        $rawMaterialCost += $quantity * $unitCost;
+    }
+
+    // 3. Validate output weight does not exceed input weight
+    foreach ($validated['outputs'] as $row) {
+        $outputWeight += (float) $row['quantity'];
+    }
+    if ($outputWeight > $inputWeight) {
+        throw ValidationException::withMessages([
+            'outputs' => 'Finished output cannot be greater than raw material input.',
+        ]);
+    }
+
+    // 4. Calculate cost metrics
+    $totalCost        = $rawMaterialCost + $conversionCost;
+    $costPerOutputKg  = $totalCost / $outputWeight;
+
+    // 5. Create batch header record
+    $batch = ProductionBatch::create([
+        'date'             => $validated['date'],
+        'status'           => 'Completed',
+        'input_weight'     => $inputWeight,
+        'output_weight'    => $outputWeight,
+        'wastage_weight'   => $inputWeight - $outputWeight,
+        'raw_material_cost'=> $rawMaterialCost,
+        'conversion_cost'  => $conversionCost,
+        'total_cost'       => $totalCost,
+        'cost_per_output_kg' => $costPerOutputKg,
+        'user_id'          => auth()->id(),
+        'completed_at'     => now(),
+    ]);
+
+    // 6. DECREMENT raw material kg stock
+    foreach ($validated['inputs'] as $row) {
+        $product  = $products[$row['product_id']];
+        $quantity = (float) $row['quantity'];
+        ProductionBatchInput::create([...]);
+        $product->update([
+            'product_quantity' => (float) $product->product_quantity - $quantity,
+        ]);
+    }
+
+    // 7. INCREMENT finished product Pcs stock with weighted average cost
+    foreach ($validated['outputs'] as $row) {
+        $product         = $products[$row['product_id']];
+        $quantity        = (float) $row['quantity'];
+        $currentQuantity = (float) $product->product_quantity;
+        $currentCost     = (float) $product->product_cost;
+        $newQuantity     = $currentQuantity + $quantity;
+        $newAverageCost  = $newQuantity > 0
+            ? (($currentQuantity * $currentCost) + ($quantity * $costPerOutputKg)) / $newQuantity
+            : $costPerOutputKg;
+
+        ProductionBatchOutput::create([...]);
+        $product->update([
+            'product_quantity' => $newQuantity,
+            'product_cost'     => $newAverageCost,
+        ]);
+    }
+
+    // 8. Security audit log
+    Log::channel('security')->info('Production batch completed', [
+        'user_id'             => auth()->id(),
+        'production_batch_id' => $batch->id,
+        'input_weight'        => $inputWeight,
+        'output_weight'       => $outputWeight,
+        'wastage_weight'      => $inputWeight - $outputWeight,
+        'total_cost'          => $totalCost,
+    ]);
+});
+
+--------------------------------------------------------------------------------
+C.4 — SCRIPT DEPENDENCY LOAD ORDER (Race Condition Prevention)
+         File: resources/views/includes/main-js.blade.php
+         CRITICAL: Load order must be preserved exactly as shown below.
+--------------------------------------------------------------------------------
+
+<!-- STEP 1: jQuery Core — must load FIRST, no defer -->
+<script src="{{ asset('js/vendor/jquery-3.7.0.min.js') }}"></script>
+
+<!-- STEP 2: PDF generation libraries -->
+<script src="{{ asset('js/vendor/pdfmake.min.js') }}"></script>
+<script src="{{ asset('js/vendor/vfs_fonts.js') }}"></script>
+
+<!-- STEP 3: DataTables bundle (requires jQuery to already exist in DOM) -->
+<script src="{{ asset('vendor/datatables/datatables.min.js') }}"></script>
+
+<!-- STEP 4: UI utility — perfect scrollbar -->
+<script src="{{ asset('js/vendor/perfect-scrollbar.js') }}"></script>
+
+<!-- STEP 5: DataTables server-side helper -->
+<script src="{{ asset('vendor/datatables/buttons.server-side.js') }}"></script>
+
+<!-- STEP 6: Currency mask utility -->
+<script src="{{ asset('js/jquery-mask-money.js') }}"></script>
+
+<!-- STEP 7: SweetAlert toast notifications -->
+@include('sweetalert::alert')
+
+<!-- STEP 8: Vite compiled app bundle — MUST load LAST -->
+@vite('resources/js/app.js')
+
+<!-- STEP 9: Module-specific scripts injected here -->
+@yield('third_party_scripts')
+@stack('page_scripts')
+
+<!-- STEP 10: Livewire scripts -->
+@livewireScripts
+
+NOTE: All assets above are LOCAL (zero CDN dependencies).
+      Bootstrap Icons: public/fonts/bootstrap-icons/
+      GSAP 3.12.5:     public/js/vendor/gsap.min.js
+      Chart.js 3.5.0:  public/js/vendor/chart.min.js
+      SweetAlert2 v11: public/vendor/sweetalert/sweetalert2.all.min.js
+      FilePond:        public/vendor/filepond/
+      Font Awesome:    public/vendor/font-awesome/
+
+================================================================================
+SECTION D: ENGINEERING STANDARDIZATION & MAINTENANCE GUIDELINES
+================================================================================
+
+--------------------------------------------------------------------------------
+D.1 — CHECKLIST: ADDING A NEW MODULE FEATURE (Controller / Model)
+--------------------------------------------------------------------------------
+
+STEP 1 — Create the controller inside the correct module:
+  File: Modules/{ModuleName}/Http/Controllers/{FeatureName}Controller.php
+  Namespace: Modules\{ModuleName}\Http\Controllers
+
+STEP 2 — Create the Eloquent model inside the module:
+  File: Modules/{ModuleName}/Entities/{ModelName}.php
+  Namespace: Modules\{ModuleName}\Entities
+
+STEP 3 — Create the migration:
+  File: Modules/{ModuleName}/Database/Migrations/YYYY_MM_DD_create_{table}_table.php
+  Run: php artisan module:migrate {ModuleName}
+
+STEP 4 — Register the route in the module routes file:
+  File: Modules/{ModuleName}/Routes/web.php
+  Wrap in: Route::middleware(['auth', 'permission:{permission_token}'])->group(...)
+
+STEP 5 — Validate namespace resolution:
+  Run: composer dump-autoload
+  Verify: php artisan route:list | grep {module-prefix}
+
+STEP 6 — Clear all caches:
+  php artisan optimize:clear
+  composer dump-autoload
+
+STEP 7 — Test the route in browser before committing.
+
+RULE: NEVER place module controllers in app/Http/Controllers/
+      NEVER place module models in app/Models/
+      NEVER place module migrations in database/migrations/ (use module path)
+
+--------------------------------------------------------------------------------
+D.2 — CHECKLIST: ADDING A NEW PERMISSION TOKEN
+--------------------------------------------------------------------------------
+
+STEP 1 — Open the permissions array in:
+  File: Modules/User/Database/Seeders/PermissionsTableSeeder.php
+
+STEP 2 — Add the new token string to the $permissions array:
+  Example: 'access_new_feature', 'create_new_feature', 'delete_new_feature'
+
+STEP 3 — Decide if Admin role should have this permission.
+  If YES: no action needed (Admin gets all except the 3 blocked tokens).
+  If NO:  add the token to the array_filter exclusion list in the Admin block.
+
+STEP 4 — Run the seeder (safe — uses firstOrCreate, no duplicates):
+  php artisan db:seed --class="Modules\User\Database\Seeders\PermissionsTableSeeder"
+
+STEP 5 — Clear Spatie permission cache:
+  php artisan cache:clear
+  php artisan optimize:clear
+
+STEP 6 — Apply the permission gate in the controller:
+  abort_if(Gate::denies('access_new_feature'), 403);
+
+STEP 7 — Add the permission check to the sidebar menu blade if needed:
+  @can('access_new_feature') ... @endcan
+
+--------------------------------------------------------------------------------
+D.3 — CACHE FLUSHING COMPLIANCE SEQUENCE
+--------------------------------------------------------------------------------
+
+Run this sequence after ANY of the following changes:
+  - .env variable modifications
+  - config/ file changes
+  - New routes added or modified
+  - Blade template changes not reflecting
+  - New migrations run
+  - Composer package added/removed
+  - Permission seeder re-run
+
+MANDATORY SEQUENCE:
+  php artisan optimize:clear
+  composer dump-autoload
+
+EXTENDED SEQUENCE (after migrations or model changes):
+  php artisan optimize:clear
+  composer dump-autoload
+  php artisan migrate
+  php artisan db:seed --class="Modules\User\Database\Seeders\PermissionsTableSeeder"
+
+WHAT optimize:clear PURGES:
+  - Compiled blade view cache (storage/framework/views/)
+  - Application cache (storage/framework/cache/)
+  - Route cache (bootstrap/cache/routes-v7.php)
+  - Config cache (bootstrap/cache/config.php)
+  - Compiled class file (bootstrap/cache/compiled.php)
+  - Event cache
+
+WHAT composer dump-autoload FIXES:
+  - PSR-4 class map regeneration
+  - Resolves "Class not found" errors after new files are added
+  - Required after any new PHP file is created in Modules/
+
+--------------------------------------------------------------------------------
+D.4 — SECURITY AUDIT FINDINGS & FIXES (Applied 2026-06-01)
+--------------------------------------------------------------------------------
+
+FINDING 1 — CRITICAL: .env backup file exposed at project root
+  File: .env.backup-20260531-215053
+  Risk: Contains DB credentials, APP_KEY, session secrets in plaintext
+  Status: DELETED ✓
+
+FINDING 2 — LOW: Orphaned screenshot.jpg in public/images/
+  File: public/images/screenshot.jpg
+  Risk: Exposes application UI to public without auth
+  Status: DELETED ✓
+
+FINDING 3 — LOW: Root-level planning markdown files
+  Files: DESIGN-ROADMAP.md, README.md
+  Risk: Exposes internal architecture notes
+  Status: DELETED ✓ (docs/ folder preserved for internal reference)
+
+FINDING 4 — VERIFIED SECURE: Role escalation protection
+  RolesController blocks non-Super-Admin from creating/renaming Super Admin role
+  Status: CONFIRMED SECURE ✓
+
+FINDING 5 — VERIFIED SECURE: Permission validation
+  All permission tokens validated against DB with 'exists:permissions,name'
+  Status: CONFIRMED SECURE ✓
+
+FINDING 6 — VERIFIED SECURE: Production batch stock manipulation
+  All stock operations wrapped in DB::transaction() with lockForUpdate()
+  Status: CONFIRMED SECURE ✓
+
+FINDING 7 — VERIFIED SECURE: All CDN dependencies removed
+  Zero external network requests — fully offline capable
+  Status: CONFIRMED SECURE ✓
+
+================================================================================
+PART 3: WINDOWS DESKTOP PACKAGE — BUILD & DEPLOYMENT GUIDE
+================================================================================
+
+--------------------------------------------------------------------------------
+3.1 — ENVIRONMENT CONFIGURATION FOR DESKTOP WRAPPER
+--------------------------------------------------------------------------------
+
+The application runs on XAMPP local stack. For desktop packaging, the internal
+URL must point to the local PHP server, NOT the XAMPP Apache virtual host.
+
+REQUIRED .env SETTINGS FOR DESKTOP MODE:
+  APP_URL=http://127.0.0.1:8000
+  APP_ENV=local
+  APP_DEBUG=false          ← Set to false for production desktop build
+  SESSION_SECURE_COOKIE=false
+  SESSION_SAME_SITE=lax
+
+The Nativefier wrapper will load: http://127.0.0.1:8000
+The PHP artisan serve command must be running in the background.
+
+--------------------------------------------------------------------------------
+3.2 — NATIVEFIER COMPILATION RECIPE
+--------------------------------------------------------------------------------
+
+PREREQUISITES:
+  1. Node.js installed (https://nodejs.org — LTS version)
+  2. npm available in PATH
+
+STEP 1 — Install Nativefier globally:
+  npm install -g nativefier
+
+STEP 2 — Prepare the application icon (optional):
+  Place a 256x256 PNG icon at: C:\xampp\htdocs\neci-erp\public\images\logo.png
+  (Already exists in the project)
+
+STEP 3 — Start the local server (must be running before packaging):
+  c:\xampp\php\php.exe artisan serve --host=127.0.0.1 --port=8000
+
+STEP 4 — Run the Nativefier compilation command:
+  Open a NEW terminal window and run:
+
+  nativefier ^
+    --name "NECI ERP System" ^
+    --app-version "2.0.0" ^
+    --width 1280 ^
+    --height 800 ^
+    --min-width 1024 ^
+    --min-height 768 ^
+    --internal-urls ".*" ^
+    --inject "neci-desktop.css" ^
+    --hide-window-frame false ^
+    --disable-context-menu ^
+    --disable-dev-tools ^
+    --single-instance ^
+    --tray ^
+    --icon "C:\xampp\htdocs\neci-erp\public\images\logo.png" ^
+    --user-agent "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36" ^
+    --no-overwrite ^
+    --platform win32 ^
+    --arch x64 ^
+    "http://127.0.0.1:8000" ^
+    "C:\NECI-ERP-Desktop"
+
+STEP 5 — Output location:
+  The compiled .exe will be at: C:\NECI-ERP-Desktop\NECI ERP System-win32-x64\
+  Executable: "NECI ERP System.exe"
+
+STEP 6 — Create a desktop shortcut pointing to "NECI ERP System.exe"
+
+FLAG EXPLANATIONS:
+  --internal-urls ".*"     → All URLs stay inside the app window (no browser pop-outs)
+  --single-instance        → Only one instance of the app can run at a time
+  --disable-dev-tools      → Hides F12 developer tools from end users
+  --disable-context-menu   → Removes right-click browser menu
+  --tray                   → App minimizes to system tray instead of closing
+  --no-overwrite           → Prevents accidental rebuild overwriting existing install
+
+--------------------------------------------------------------------------------
+3.3 — END-USER RUNTIME LAUNCH GUIDE
+         Save as: C:\NECI-ERP-Desktop\HOW-TO-LAUNCH.txt
+--------------------------------------------------------------------------------
+
+NECI ERP 2.0 — LAUNCH INSTRUCTIONS
+=====================================
+
+The NECI ERP runs as a local web application wrapped in a desktop window.
+You must start the server BEFORE opening the application.
+
+METHOD A — AUTOMATIC LAUNCH (Recommended)
+Use the provided start-neci-erp.bat launcher script:
+  Double-click: C:\xampp\htdocs\neci-erp\start-neci-erp.bat
+  This will:
+    1. Start XAMPP Apache and MySQL services
+    2. Start the PHP application server on port 8000
+    3. Open the NECI ERP desktop application
+
+METHOD B — MANUAL LAUNCH (Step by Step)
+
+STEP 1 — Start XAMPP Services:
+  Open XAMPP Control Panel: C:\xampp\xampp-control.exe
+  Click [Start] next to Apache
+  Click [Start] next to MySQL
+  Wait for both to show green status
+
+STEP 2 — Start the PHP Application Server:
+  Open Command Prompt (cmd.exe)
+  Run: c:\xampp\php\php.exe c:\xampp\htdocs\neci-erp\artisan serve --host=127.0.0.1 --port=8000
+  Leave this window OPEN (minimise it, do not close)
+
+STEP 3 — Launch the Application:
+  Double-click the "NECI ERP System" desktop shortcut
+  OR run: C:\NECI-ERP-Desktop\NECI ERP System-win32-x64\NECI ERP System.exe
+
+STEP 4 — Login:
+  Email:    adminfaisal@neci.com
+  Password: necishop
+
+TO CLOSE THE APPLICATION:
+  Close the NECI ERP window
+  In the Command Prompt from Step 2, press Ctrl+C to stop the server
+  In XAMPP Control Panel, click [Stop] for Apache and MySQL
+
+TROUBLESHOOTING:
+  "This site can't be reached" → PHP server is not running. Repeat Step 2.
+  "Database error"             → MySQL is not running. Repeat Step 1.
+  "Login failed"               → Check credentials above.
+  "Port 8000 in use"           → Change --port=8001 in Step 2 and update APP_URL in .env
+
+--------------------------------------------------------------------------------
+3.4 — ONE-CLICK LAUNCHER SCRIPT
+         File: C:\xampp\htdocs\neci-erp\start-neci-erp.bat
+--------------------------------------------------------------------------------
+
+@echo off
+title NECI ERP 2.0 Launcher
+echo Starting NECI ERP 2.0...
+echo.
+
+echo [1/3] Starting XAMPP MySQL...
+net start mysql 2>nul || c:\xampp\mysql\bin\mysqld.exe --standalone &
+
+echo [2/3] Starting PHP Application Server...
+start /min cmd /c "c:\xampp\php\php.exe c:\xampp\htdocs\neci-erp\artisan serve --host=127.0.0.1 --port=8000"
+
+echo [3/3] Waiting for server to initialize...
+timeout /t 3 /nobreak >nul
+
+echo Launching NECI ERP Desktop Application...
+start "" "C:\NECI-ERP-Desktop\NECI ERP System-win32-x64\NECI ERP System.exe"
+
+echo.
+echo NECI ERP 2.0 is running.
+echo Close this window to keep the server running in background.
+
+================================================================================
+PHASE 6 EXECUTION LOG — COMPLETED 2026-06-01
+================================================================================
+
+PART 1 — WORKSPACE SANITATION
+  [DELETED]  .env.backup-20260531-215053        ← SECURITY: credentials exposed
+  [DELETED]  public/images/screenshot.jpg       ← Orphaned, not referenced
+  [DELETED]  DESIGN-ROADMAP.md                  ← Root-level planning artifact
+  [DELETED]  README.md                          ← Root-level planning artifact
+  [PRESERVED] docs/ folder                      ← Internal reference docs kept
+  [PRESERVED] backup/ folder                    ← System backup zip kept
+  [CONFIRMED] No duplicate controllers found    ← All controllers in correct modules
+  [CONFIRMED] No .bak or _old files found       ← Clean workspace
+  [CONFIRMED] No orphaned HTML files in public/ ← Clean public directory
+
+PART 1.3 — FRAMEWORK CACHE PURGE
+  [EXECUTED]  php artisan optimize:clear
+  events ✓  views ✓  cache ✓  route ✓  config ✓  compiled ✓
+
+PART 2 — ARCHITECTURAL AUDIT
+  [CONFIRMED] All controllers in correct Modules/{Name}/Http/Controllers/
+  [CONFIRMED] All models in correct Modules/{Name}/Entities/
+  [CONFIRMED] HomeController, BackupController, RestoreController correctly
+              reside in app/Http/Controllers/ (these are core app controllers,
+              not module-specific — correct placement)
+  [CONFIRMED] No misplaced files found — zero moves required
+
+PART 2.2 — BLUEPRINT GENERATED
+  [CREATED]  NECI-ERP-ARCHITECTURE-BLUEPRINT.txt (this file)
+
+PART 3 — DESKTOP PACKAGE GUIDE
+  [DOCUMENTED] Nativefier compilation command
+  [DOCUMENTED] End-user launch instructions
+  [DOCUMENTED] One-click launcher batch script
+
+SECURITY FIXES APPLIED
+  [FIXED]  .env backup file deleted (credential exposure)
+  [FIXED]  Orphaned screenshot removed (UI exposure)
+  [FIXED]  Root planning docs removed (architecture exposure)
+  [VERIFIED] Role escalation protection — SECURE
+  [VERIFIED] Permission validation — SECURE
+  [VERIFIED] Production batch transactions — SECURE
+  [VERIFIED] Zero CDN dependencies — FULLY OFFLINE
+
+================================================================================
+END OF BLUEPRINT
+================================================================================

@@ -1,0 +1,8 @@
+/* Nunito local fallback — used on error pages */
+/* Falls back to system sans-serif fonts when offline */
+@font-face {
+    font-family: 'Nunito';
+    font-style: normal;
+    font-weight: 400;
+    src: local('Segoe UI'), local('Arial'), local('sans-serif');
+}

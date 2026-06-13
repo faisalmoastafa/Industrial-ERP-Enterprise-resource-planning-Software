@@ -1,0 +1,788 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Industrial ERP System — User Manual</title>
+<style>
+  :root {
+    --primary: #1a56db;
+    --primary-dark: #1e429f;
+    --accent: #00d4ff;
+    --bg: #f8fafc;
+    --surface: #ffffff;
+    --border: #e2e8f0;
+    --text: #1e293b;
+    --text-muted: #64748b;
+    --code-bg: #f1f5f9;
+    --sidebar-bg: #1e293b;
+    --sidebar-text: #cbd5e1;
+    --sidebar-active: #00d4ff;
+    --success: #16a34a;
+    --warning: #ca8a04;
+    --danger: #dc2626;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    display: flex;
+    min-height: 100vh;
+  }
+
+  /* ── Sidebar ── */
+  #sidebar {
+    width: 260px;
+    min-width: 260px;
+    background: var(--sidebar-bg);
+    color: var(--sidebar-text);
+    display: flex;
+    flex-direction: column;
+    position: fixed;
+    top: 0; left: 0; bottom: 0;
+    overflow-y: auto;
+    z-index: 100;
+  }
+
+  #sidebar .brand {
+    padding: 24px 20px 16px;
+    border-bottom: 1px solid rgba(255,255,255,0.08);
+  }
+  #sidebar .brand h2 {
+    font-size: 1rem;
+    font-weight: 700;
+    color: #fff;
+    line-height: 1.3;
+  }
+  #sidebar .brand p {
+    font-size: 0.72rem;
+    color: var(--accent);
+    margin-top: 4px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+  }
+
+  #sidebar nav { padding: 12px 0; flex: 1; }
+  #sidebar nav a {
+    display: block;
+    padding: 9px 20px;
+    font-size: 0.85rem;
+    color: var(--sidebar-text);
+    text-decoration: none;
+    border-left: 3px solid transparent;
+    transition: all 0.15s;
+  }
+  #sidebar nav a:hover,
+  #sidebar nav a.active {
+    color: #fff;
+    background: rgba(255,255,255,0.06);
+    border-left-color: var(--sidebar-active);
+  }
+  #sidebar nav .section-label {
+    padding: 16px 20px 6px;
+    font-size: 0.68rem;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.3);
+    font-weight: 600;
+  }
+
+  /* ── Main content ── */
+  #content {
+    margin-left: 260px;
+    flex: 1;
+    padding: 40px 48px;
+    max-width: 960px;
+  }
+
+  /* ── Typography ── */
+  h1 { font-size: 2rem; font-weight: 800; color: var(--primary-dark); margin-bottom: 8px; }
+  h2 { font-size: 1.4rem; font-weight: 700; color: var(--primary-dark); margin: 40px 0 12px; padding-bottom: 8px; border-bottom: 2px solid var(--border); }
+  h3 { font-size: 1.1rem; font-weight: 600; color: var(--text); margin: 24px 0 8px; }
+  h4 { font-size: 0.95rem; font-weight: 600; color: var(--text-muted); margin: 16px 0 6px; text-transform: uppercase; letter-spacing: 0.5px; }
+  p  { line-height: 1.75; color: var(--text); margin-bottom: 12px; }
+  ul, ol { padding-left: 24px; margin-bottom: 12px; }
+  li { line-height: 1.75; margin-bottom: 4px; }
+  strong { color: var(--text); }
+  a { color: var(--primary); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+
+  .subtitle { color: var(--text-muted); font-size: 1rem; margin-bottom: 32px; }
+
+  /* ── Cards ── */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 20px 24px;
+    margin-bottom: 16px;
+  }
+  .card h3 { margin-top: 0; }
+
+  /* ── Info boxes ── */
+  .info-box {
+    border-radius: 8px;
+    padding: 14px 18px;
+    margin-bottom: 16px;
+    border-left: 4px solid;
+    font-size: 0.9rem;
+    line-height: 1.6;
+  }
+  .info-box.tip    { background: #eff6ff; border-color: var(--primary); color: #1e40af; }
+  .info-box.warn   { background: #fffbeb; border-color: var(--warning); color: #92400e; }
+  .info-box.danger { background: #fef2f2; border-color: var(--danger);  color: #991b1b; }
+  .info-box.ok     { background: #f0fdf4; border-color: var(--success); color: #14532d; }
+
+  /* ── Table ── */
+  table { width: 100%; border-collapse: collapse; margin-bottom: 20px; font-size: 0.9rem; }
+  th { background: #f1f5f9; color: var(--text); font-weight: 600; padding: 10px 14px; text-align: left; border: 1px solid var(--border); }
+  td { padding: 9px 14px; border: 1px solid var(--border); vertical-align: top; }
+  tr:nth-child(even) td { background: #fafafa; }
+
+  /* ── Steps ── */
+  .steps { counter-reset: step; list-style: none; padding: 0; }
+  .steps li {
+    counter-increment: step;
+    display: flex;
+    gap: 16px;
+    margin-bottom: 14px;
+    align-items: flex-start;
+  }
+  .steps li::before {
+    content: counter(step);
+    min-width: 28px; height: 28px;
+    background: var(--primary);
+    color: #fff;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.8rem;
+    font-weight: 700;
+    flex-shrink: 0;
+    margin-top: 2px;
+  }
+
+  /* ── Badges ── */
+  .badge {
+    display: inline-block;
+    padding: 2px 10px;
+    border-radius: 20px;
+    font-size: 0.75rem;
+    font-weight: 600;
+  }
+  .badge.green  { background: #dcfce7; color: #15803d; }
+  .badge.blue   { background: #dbeafe; color: #1d4ed8; }
+  .badge.orange { background: #ffedd5; color: #c2410c; }
+
+  /* ── Keyboard shortcut ── */
+  kbd {
+    display: inline-block;
+    padding: 2px 8px;
+    background: #f1f5f9;
+    border: 1px solid #cbd5e1;
+    border-radius: 4px;
+    font-family: monospace;
+    font-size: 0.82rem;
+    color: var(--text);
+    box-shadow: 0 1px 0 #94a3b8;
+  }
+
+  /* ── Module grid ── */
+  .module-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 12px;
+    margin: 16px 0 24px;
+  }
+  .module-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 16px;
+    text-align: center;
+  }
+  .module-card .icon { font-size: 1.8rem; margin-bottom: 8px; }
+  .module-card .name { font-size: 0.85rem; font-weight: 600; color: var(--text); }
+  .module-card .desc { font-size: 0.75rem; color: var(--text-muted); margin-top: 4px; }
+
+  /* ── Section anchor offset for fixed sidebar ── */
+  section { scroll-margin-top: 20px; }
+
+  @media print {
+    #sidebar { display: none; }
+    #content { margin-left: 0; padding: 20px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ══════════════════════════════════════════════════════ SIDEBAR -->
+<div id="sidebar">
+  <div class="brand">
+    <h2>Industrial ERP System</h2>
+    <p>User Manual v1.0</p>
+  </div>
+  <nav>
+    <div class="section-label">Getting Started</div>
+    <a href="#intro">Introduction</a>
+    <a href="#login">Logging In</a>
+    <a href="#dashboard">Dashboard</a>
+    <a href="#navigation">Navigation</a>
+
+    <div class="section-label">Core Modules</div>
+    <a href="#products">Products & Inventory</a>
+    <a href="#purchases">Purchases</a>
+    <a href="#sales">Sales & Billing</a>
+    <a href="#pos">Point of Sale (POS)</a>
+    <a href="#quotations">Quotations</a>
+    <a href="#people">Customers & Suppliers</a>
+
+    <div class="section-label">Finance</div>
+    <a href="#expenses">Expenses</a>
+    <a href="#income">Income</a>
+    <a href="#payments">Payments & Ledger</a>
+    <a href="#returns">Returns</a>
+
+    <div class="section-label">Operations</div>
+    <a href="#manufacturing">Manufacturing</a>
+    <a href="#adjustments">Stock Adjustments</a>
+    <a href="#hrm">HRM & Payroll</a>
+
+    <div class="section-label">Administration</div>
+    <a href="#reports">Reports</a>
+    <a href="#settings">Settings & Branding</a>
+    <a href="#users">User Management</a>
+    <a href="#backup">Backup & Restore</a>
+    <a href="#shortcuts">Keyboard Shortcuts</a>
+  </nav>
+</div>
+
+<!-- ══════════════════════════════════════════════════════ CONTENT -->
+<div id="content">
+
+<!-- ───────────────────────────── INTRODUCTION -->
+<section id="intro">
+  <h1>Industrial ERP System</h1>
+  <p class="subtitle">Complete User Manual — Version 1.0</p>
+
+  <div class="info-box ok">
+    Welcome to <strong>Industrial ERP System</strong> — a full-featured desktop ERP application designed for industrial businesses. This manual walks you through every module so you can manage your operations confidently from day one.
+  </div>
+
+  <h2>What Is Industrial ERP System?</h2>
+  <p>Industrial ERP System is an all-in-one business management solution that runs entirely on your local computer — no internet required. It handles:</p>
+  <div class="module-grid">
+    <div class="module-card"><div class="icon">📦</div><div class="name">Inventory</div><div class="desc">Products, stock, barcodes</div></div>
+    <div class="module-card"><div class="icon">🛒</div><div class="name">Purchases</div><div class="desc">Suppliers, purchase orders</div></div>
+    <div class="module-card"><div class="icon">💰</div><div class="name">Sales</div><div class="desc">Invoices, receipts, POS</div></div>
+    <div class="module-card"><div class="icon">📋</div><div class="name">Quotations</div><div class="desc">Price quotes to customers</div></div>
+    <div class="module-card"><div class="icon">👥</div><div class="name">CRM</div><div class="desc">Customers & suppliers</div></div>
+    <div class="module-card"><div class="icon">🏭</div><div class="name">Manufacturing</div><div class="desc">Production batches</div></div>
+    <div class="module-card"><div class="icon">💼</div><div class="name">HRM</div><div class="desc">Employees, payroll</div></div>
+    <div class="module-card"><div class="icon">📊</div><div class="name">Reports</div><div class="desc">Financial & stock reports</div></div>
+    <div class="module-card"><div class="icon">🔒</div><div class="name">Backup</div><div class="desc">Data safety tools</div></div>
+  </div>
+</section>
+
+<!-- ───────────────────────────── LOGIN -->
+<section id="login">
+  <h2>Logging In</h2>
+  <p>When you launch the application a splash screen appears while services start. After a few seconds the login page loads automatically.</p>
+
+  <div class="card">
+    <h3>Default Superadmin Credentials</h3>
+    <table>
+      <tr><th>Field</th><th>Value</th></tr>
+      <tr><td>Email</td><td><strong>superadmin@erp.com</strong></td></tr>
+      <tr><td>Password</td><td><strong>superadmin</strong></td></tr>
+      <tr><td>Role</td><td><span class="badge blue">Super Admin</span> — full access to all modules</td></tr>
+    </table>
+  </div>
+
+  <div class="info-box warn">
+    <strong>Security tip:</strong> After your first login, go to <em>User Management → Edit Profile</em> and change the default password to something strong and unique.
+  </div>
+
+  <h3>Steps to Log In</h3>
+  <ol class="steps">
+    <li>Launch the application from the desktop shortcut or Start Menu.</li>
+    <li>Wait for the splash screen to finish loading (usually 5–15 seconds).</li>
+    <li>Enter your email and password on the login page.</li>
+    <li>Click <strong>Login</strong>. You will be taken to the Dashboard.</li>
+  </ol>
+</section>
+
+<!-- ───────────────────────────── DASHBOARD -->
+<section id="dashboard">
+  <h2>Dashboard</h2>
+  <p>The Dashboard gives you a real-time snapshot of your business. You will see:</p>
+  <ul>
+    <li><strong>Total Stats</strong> — overall sales, purchases, expenses, and income figures.</li>
+    <li><strong>Month Overview</strong> — current month's sales vs. purchases chart.</li>
+    <li><strong>Weekly Sales &amp; Purchases</strong> — bar chart for the last 7 days.</li>
+    <li><strong>Monthly Cash Flow</strong> — income vs. expense trend over 12 months.</li>
+    <li><strong>Notifications</strong> — system alerts and low-stock warnings.</li>
+  </ul>
+  <div class="info-box tip">
+    Dashboard widgets are permission-based. If a widget does not appear, your user role may not have the required permission. Ask the Super Admin to grant it.
+  </div>
+</section>
+
+<!-- ───────────────────────────── NAVIGATION -->
+<section id="navigation">
+  <h2>Navigating the Application</h2>
+  <p>The left sidebar is your main navigation. It groups all modules into logical sections. Click any item to open that module.</p>
+
+  <h3>Top Menu Bar (Electron Shell)</h3>
+  <table>
+    <tr><th>Menu</th><th>Options</th></tr>
+    <tr><td>Navigation</td><td>Back <kbd>Alt+Left</kbd>, Forward <kbd>Alt+Right</kbd>, Reload <kbd>Ctrl+R</kbd></td></tr>
+    <tr><td>File</td><td>Open Backup Folder <kbd>Ctrl+B</kbd>, Exit <kbd>Ctrl+Q</kbd></td></tr>
+    <tr><td>Help</td><td>User Manual, About Industrial ERP System</td></tr>
+  </table>
+
+  <h3>Sidebar Sections</h3>
+  <ul>
+    <li><strong>Dashboard</strong> — business overview.</li>
+    <li><strong>Products</strong> — product catalog and categories.</li>
+    <li><strong>Purchases</strong> — supplier orders and purchase returns.</li>
+    <li><strong>Sales</strong> — customer invoices, POS, and sale returns.</li>
+    <li><strong>Quotations</strong> — price quotations.</li>
+    <li><strong>People</strong> — customers and suppliers.</li>
+    <li><strong>Expenses / Income</strong> — financial entries.</li>
+    <li><strong>Manufacturing</strong> — production batches.</li>
+    <li><strong>HRM</strong> — employees and payroll.</li>
+    <li><strong>Reports</strong> — all business reports.</li>
+    <li><strong>Settings</strong> — system configuration.</li>
+    <li><strong>User Management</strong> — users and roles.</li>
+  </ul>
+</section>
+
+<!-- ───────────────────────────── PRODUCTS -->
+<section id="products">
+  <h2>Products &amp; Inventory</h2>
+  <p>The Products module is the heart of your inventory. Every item you buy or sell must first be created here.</p>
+
+  <h3>Adding a New Product</h3>
+  <ol class="steps">
+    <li>Go to <strong>Products → Products</strong> in the sidebar.</li>
+    <li>Click the <strong>Create</strong> button (top right).</li>
+    <li>Fill in the product name, code/SKU, category, unit, cost price, and selling price.</li>
+    <li>Optionally upload a product image.</li>
+    <li>Click <strong>Save</strong>.</li>
+  </ol>
+
+  <h3>Product Fields Explained</h3>
+  <table>
+    <tr><th>Field</th><th>Description</th></tr>
+    <tr><td>Product Name</td><td>Full descriptive name of the item.</td></tr>
+    <tr><td>Product Code</td><td>Unique SKU or barcode number.</td></tr>
+    <tr><td>Category</td><td>Group the product belongs to (create categories first).</td></tr>
+    <tr><td>Unit</td><td>Unit of measurement (pcs, kg, litre, etc.).</td></tr>
+    <tr><td>Cost Price</td><td>What you pay to purchase this item.</td></tr>
+    <tr><td>Selling Price</td><td>What you charge your customers.</td></tr>
+    <tr><td>Alert Quantity</td><td>System notifies you when stock falls below this number.</td></tr>
+  </table>
+
+  <h3>Managing Categories</h3>
+  <p>Go to <strong>Products → Categories</strong> to add, edit, or delete product categories before adding products.</p>
+
+  <h3>Printing Barcodes</h3>
+  <p>Open any product and click <strong>Print Barcode</strong>. You can select the quantity to print and the barcode format (1D or 2D).</p>
+
+  <h3>Stock Levels</h3>
+  <p>Stock quantities are updated automatically when you record purchases, sales, adjustments, or manufacturing batches. You can always see the current quantity on the product list page.</p>
+</section>
+
+<!-- ───────────────────────────── PURCHASES -->
+<section id="purchases">
+  <h2>Purchases</h2>
+  <p>Record every item you buy from suppliers here. The system automatically updates your inventory stock when a purchase is saved.</p>
+
+  <h3>Creating a Purchase Order</h3>
+  <ol class="steps">
+    <li>Go to <strong>Purchases → Purchases</strong>.</li>
+    <li>Click <strong>Create Purchase</strong>.</li>
+    <li>Select the supplier from the dropdown (add them in People first if needed).</li>
+    <li>Enter the purchase date and reference number.</li>
+    <li>Add product lines — search for each product, enter quantity and price.</li>
+    <li>Set the payment status (<span class="badge green">Paid</span>, <span class="badge orange">Partial</span>, or <span class="badge blue">Unpaid</span>).</li>
+    <li>Click <strong>Save</strong>. Stock is updated immediately.</li>
+  </ol>
+
+  <h3>Recording Payments</h3>
+  <p>Open any existing purchase and click <strong>Add Payment</strong> to record partial or full payment to the supplier.</p>
+
+  <h3>Purchase Returns</h3>
+  <p>If you need to return items to a supplier, go to <strong>Purchases → Purchase Returns</strong>, create a return linked to the original purchase, and the stock will be decremented accordingly.</p>
+</section>
+
+<!-- ───────────────────────────── SALES -->
+<section id="sales">
+  <h2>Sales &amp; Billing</h2>
+  <p>Record every sale you make to customers. The system automatically reduces stock and updates the customer's ledger.</p>
+
+  <h3>Creating a Sale Invoice</h3>
+  <ol class="steps">
+    <li>Go to <strong>Sales → Sales</strong>.</li>
+    <li>Click <strong>Create Sale</strong>.</li>
+    <li>Select or search for the customer.</li>
+    <li>Add product lines with quantity and unit price.</li>
+    <li>Apply any discount if applicable.</li>
+    <li>Set payment status and method (cash, bank, etc.).</li>
+    <li>Click <strong>Save</strong>. Stock is reduced automatically.</li>
+  </ol>
+
+  <h3>Printing an Invoice</h3>
+  <p>Open any sale and click the <strong>Print</strong> button to generate a printable PDF invoice. The company name, logo, and footer are pulled from your Settings automatically.</p>
+
+  <h3>Sale Returns</h3>
+  <p>When a customer returns goods, go to <strong>Sales → Sale Returns</strong> and create a return linked to the original sale. Stock is added back and any refund is tracked.</p>
+</section>
+
+<!-- ───────────────────────────── POS -->
+<section id="pos">
+  <h2>Point of Sale (POS)</h2>
+  <p>The POS module is designed for fast walk-in counter sales. It works with or without a barcode scanner.</p>
+
+  <h3>Making a POS Sale</h3>
+  <ol class="steps">
+    <li>Go to <strong>Sales → POS</strong>.</li>
+    <li>Scan the product barcode OR search by product name in the search box.</li>
+    <li>The item appears in the cart on the right. Adjust quantity if needed.</li>
+    <li>Select the customer (optional — you can use a walk-in default).</li>
+    <li>Enter cash received and the system calculates the change.</li>
+    <li>Click <strong>Submit Order</strong> to complete the sale and print a receipt.</li>
+  </ol>
+
+  <div class="info-box tip">
+    You can use a USB barcode scanner — just click in the product search box and scan. The product is added to the cart automatically.
+  </div>
+</section>
+
+<!-- ───────────────────────────── QUOTATIONS -->
+<section id="quotations">
+  <h2>Quotations</h2>
+  <p>Send price quotes to customers before they confirm an order.</p>
+
+  <h3>Creating a Quotation</h3>
+  <ol class="steps">
+    <li>Go to <strong>Quotations</strong> in the sidebar.</li>
+    <li>Click <strong>Create Quotation</strong>.</li>
+    <li>Select the customer and add product lines.</li>
+    <li>Click <strong>Save</strong>.</li>
+  </ol>
+
+  <h3>Converting to a Sale</h3>
+  <p>Open any quotation and click <strong>Convert to Sale</strong>. The system creates a new sale invoice pre-filled with all the quotation details.</p>
+
+  <h3>Emailing a Quotation</h3>
+  <p>If email settings are configured, open the quotation and click <strong>Send Email</strong> to mail the PDF directly to the customer.</p>
+</section>
+
+<!-- ───────────────────────────── PEOPLE -->
+<section id="people">
+  <h2>Customers &amp; Suppliers</h2>
+  <p>Manage all the people and businesses you trade with under the <strong>People</strong> section.</p>
+
+  <h3>Adding a Customer</h3>
+  <ol class="steps">
+    <li>Go to <strong>People → Customers</strong>.</li>
+    <li>Click <strong>Create Customer</strong>.</li>
+    <li>Enter name, phone, email, and address.</li>
+    <li>You can also set an opening balance for existing debtors.</li>
+    <li>Click <strong>Save</strong>.</li>
+  </ol>
+
+  <h3>Adding a Supplier</h3>
+  <p>The process is identical — go to <strong>People → Suppliers</strong> and follow the same steps.</p>
+
+  <h3>Viewing a Ledger</h3>
+  <p>Open any customer or supplier profile and click <strong>View Ledger</strong> to see a full transaction history — all purchases, sales, payments, and outstanding balance.</p>
+</section>
+
+<!-- ───────────────────────────── EXPENSES -->
+<section id="expenses">
+  <h2>Expenses</h2>
+  <p>Track all outgoing costs that are not supplier purchases (rent, utilities, salaries, etc.).</p>
+
+  <h3>Recording an Expense</h3>
+  <ol class="steps">
+    <li>Go to <strong>Expenses → Expenses</strong>.</li>
+    <li>Click <strong>Create Expense</strong>.</li>
+    <li>Select the expense category (create categories first under <strong>Expenses → Categories</strong>).</li>
+    <li>Enter the amount, date, and any notes.</li>
+    <li>Click <strong>Save</strong>.</li>
+  </ol>
+</section>
+
+<!-- ───────────────────────────── INCOME -->
+<section id="income">
+  <h2>Income</h2>
+  <p>Record non-sale income such as rental income, interest, or other revenue streams.</p>
+
+  <ol class="steps">
+    <li>Go to <strong>Income → Income</strong>.</li>
+    <li>Click <strong>Create Income</strong>.</li>
+    <li>Select the income category.</li>
+    <li>Enter the amount, date, and reference.</li>
+    <li>Click <strong>Save</strong>.</li>
+  </ol>
+</section>
+
+<!-- ───────────────────────────── PAYMENTS -->
+<section id="payments">
+  <h2>Payments &amp; Ledger</h2>
+  <p>All payments are recorded automatically when you create or edit purchases and sales. You can also manage them directly:</p>
+
+  <ul>
+    <li><strong>Sale Payments</strong> — go to <em>Sales → Sale Payments</em> to see all customer payments.</li>
+    <li><strong>Purchase Payments</strong> — go to <em>Purchases → Purchase Payments</em> to see all supplier payments.</li>
+    <li>Open any customer or supplier profile for a full running ledger with balance.</li>
+  </ul>
+
+  <h3>Editing Amount Received</h3>
+  <p>Users with the <em>edit_sale_amount_received</em> or <em>edit_purchase_amount_received</em> permission can directly edit the received amount on any transaction.</p>
+</section>
+
+<!-- ───────────────────────────── RETURNS -->
+<section id="returns">
+  <h2>Returns</h2>
+  <p>Both sale returns and purchase returns are supported. Returns automatically adjust stock levels and financial records.</p>
+
+  <table>
+    <tr><th>Type</th><th>Where to Find</th><th>Effect</th></tr>
+    <tr><td>Sale Return</td><td>Sales → Sale Returns</td><td>Stock increases, customer credit recorded</td></tr>
+    <tr><td>Purchase Return</td><td>Purchases → Purchase Returns</td><td>Stock decreases, supplier debit recorded</td></tr>
+  </table>
+</section>
+
+<!-- ───────────────────────────── MANUFACTURING -->
+<section id="manufacturing">
+  <h2>Manufacturing</h2>
+  <p>The Manufacturing module lets you record the production of finished goods from raw materials.</p>
+
+  <h3>Creating a Production Batch</h3>
+  <ol class="steps">
+    <li>Go to <strong>Manufacturing</strong> in the sidebar.</li>
+    <li>Click <strong>Create Batch</strong>.</li>
+    <li>Select the finished product you are producing.</li>
+    <li>Enter the quantity being produced.</li>
+    <li>Add the raw material components and their consumed quantities.</li>
+    <li>Click <strong>Save</strong>. Raw material stock is reduced; finished product stock increases.</li>
+  </ol>
+</section>
+
+<!-- ───────────────────────────── ADJUSTMENTS -->
+<section id="adjustments">
+  <h2>Stock Adjustments</h2>
+  <p>Use adjustments to correct stock levels due to damage, theft, counting errors, or stock-takes.</p>
+
+  <ol class="steps">
+    <li>Go to <strong>Adjustments</strong> in the sidebar.</li>
+    <li>Click <strong>Create Adjustment</strong>.</li>
+    <li>Select each product that needs correction.</li>
+    <li>Enter the adjustment type: <span class="badge green">Addition</span> to increase stock, <span class="badge orange">Subtraction</span> to reduce it.</li>
+    <li>Enter the quantity and a reason note.</li>
+    <li>Click <strong>Save</strong>.</li>
+  </ol>
+
+  <div class="info-box warn">
+    Adjustments cannot be deleted after saving — they are permanent audit records. Always double-check quantities before saving.
+  </div>
+</section>
+
+<!-- ───────────────────────────── HRM -->
+<section id="hrm">
+  <h2>HRM &amp; Payroll</h2>
+  <p>Manage your workforce — from hiring to monthly payroll.</p>
+
+  <h3>Adding an Employee</h3>
+  <ol class="steps">
+    <li>Go to <strong>HRM → Employees</strong>.</li>
+    <li>Click <strong>Create Employee</strong>.</li>
+    <li>Fill in personal details, department, designation, and base salary.</li>
+    <li>Click <strong>Save</strong>.</li>
+  </ol>
+
+  <h3>Recording Attendance</h3>
+  <p>Go to <strong>HRM → Attendances</strong> to mark employee attendance by date.</p>
+
+  <h3>Managing Overtime &amp; Bonuses</h3>
+  <p>Go to <strong>HRM → Overtimes</strong> or <strong>HRM → Bonuses</strong> to record extra hours worked or bonus payments.</p>
+
+  <h3>Running Payroll</h3>
+  <ol class="steps">
+    <li>Go to <strong>HRM → Payrolls</strong>.</li>
+    <li>Click <strong>Create Payroll</strong>.</li>
+    <li>Select the employee and the payroll month.</li>
+    <li>The system pre-fills salary, attendance deductions, overtime, and bonuses.</li>
+    <li>Review and click <strong>Save</strong>.</li>
+  </ol>
+</section>
+
+<!-- ───────────────────────────── REPORTS -->
+<section id="reports">
+  <h2>Reports</h2>
+  <p>The Reports module gives you deep insight into every aspect of your business. Navigate to <strong>Reports</strong> in the sidebar to access:</p>
+
+  <table>
+    <tr><th>Report</th><th>What It Shows</th></tr>
+    <tr><td>Profit &amp; Loss</td><td>Revenue vs. cost vs. net profit for any date range.</td></tr>
+    <tr><td>Sales Report</td><td>All sales filtered by date, customer, or product.</td></tr>
+    <tr><td>Purchase Report</td><td>All purchases filtered by date or supplier.</td></tr>
+    <tr><td>Stock Report</td><td>Current inventory levels for all products.</td></tr>
+    <tr><td>Expense Report</td><td>All expenses by category and date range.</td></tr>
+    <tr><td>Customer Report</td><td>Outstanding balances and payment history per customer.</td></tr>
+    <tr><td>Supplier Report</td><td>Outstanding balances and payment history per supplier.</td></tr>
+    <tr><td>Product Report</td><td>Sales and purchase history per product.</td></tr>
+    <tr><td>Cash Flow</td><td>Monthly income vs. expense summary.</td></tr>
+  </table>
+
+  <p>Most reports can be printed or exported. Use the date range pickers to filter the period you want to analyse.</p>
+</section>
+
+<!-- ───────────────────────────── SETTINGS -->
+<section id="settings">
+  <h2>Settings &amp; Branding</h2>
+  <p>Configure your company details and system preferences under <strong>Settings</strong> in the sidebar.</p>
+
+  <h3>Company Information</h3>
+  <table>
+    <tr><th>Setting</th><th>Purpose</th></tr>
+    <tr><td>Company Name</td><td>Appears on invoices and reports.</td></tr>
+    <tr><td>Company Email</td><td>Used for notification emails.</td></tr>
+    <tr><td>Company Phone</td><td>Printed on invoices.</td></tr>
+    <tr><td>Company Address</td><td>Printed on invoices.</td></tr>
+    <tr><td>Footer Text</td><td>Appears at the bottom of all printed documents.</td></tr>
+    <tr><td>Default Currency</td><td>The currency symbol used throughout the system.</td></tr>
+  </table>
+
+  <h3>Logo &amp; Branding</h3>
+  <p>Upload two logo variants:</p>
+  <ul>
+    <li><strong>Solid Logo</strong> — used on the login page and splash screen (image with a solid/white background).</li>
+    <li><strong>Transparent Logo</strong> — used in the sidebar and on printed invoices (image with transparent background).</li>
+  </ul>
+
+  <h3>App Identity</h3>
+  <p>The <strong>App Title</strong> and <strong>App Tagline</strong> fields control what is displayed on the splash screen at startup. Change these to match your business branding.</p>
+
+  <h3>Currency Settings</h3>
+  <p>Go to <strong>Currencies</strong> in the sidebar to add or edit currencies. Set one as default in Settings.</p>
+
+  <h3>Units of Measurement</h3>
+  <p>Go to <strong>Settings → Units</strong> to create units like pcs, kg, litre, box, etc. These are used when creating products.</p>
+</section>
+
+<!-- ───────────────────────────── USERS -->
+<section id="users">
+  <h2>User Management</h2>
+  <p>Control who can access the system and what they can do.</p>
+
+  <h3>Creating a New User</h3>
+  <ol class="steps">
+    <li>Go to <strong>User Management → Users</strong>.</li>
+    <li>Click <strong>Create User</strong>.</li>
+    <li>Enter the user's name, email, and a temporary password.</li>
+    <li>Assign a role (<em>Super Admin</em> or <em>Admin</em> or any custom role).</li>
+    <li>Set the account as <strong>Active</strong>.</li>
+    <li>Click <strong>Save</strong>.</li>
+  </ol>
+
+  <h3>Roles &amp; Permissions</h3>
+  <p>The system ships with two default roles:</p>
+  <table>
+    <tr><th>Role</th><th>Access Level</th></tr>
+    <tr><td><span class="badge blue">Super Admin</span></td><td>Full access to every feature including user management, backup, and system settings.</td></tr>
+    <tr><td><span class="badge green">Admin</span></td><td>Full operational access excluding user management, activity logs, and system utilities.</td></tr>
+  </table>
+  <p>You can create additional custom roles and assign granular permissions to each one.</p>
+
+  <h3>Activity Log</h3>
+  <p>Super Admins can view a complete audit trail of all actions performed in the system by going to <strong>User Management → Activity Log</strong>.</p>
+
+  <h3>Editing Your Profile</h3>
+  <p>Any user can update their own name and password by going to <strong>User Management → Edit Profile</strong>.</p>
+</section>
+
+<!-- ───────────────────────────── BACKUP -->
+<section id="backup">
+  <h2>Backup &amp; Restore</h2>
+  <p>Regular backups protect your data. The system stores all data in a local SQLite database file.</p>
+
+  <div class="info-box danger">
+    <strong>Important:</strong> Take a backup before performing major operations like bulk deletions, payroll runs, or system updates.
+  </div>
+
+  <h3>Creating a Backup</h3>
+  <ol class="steps">
+    <li>Go to <strong>Settings → System Utilities → Backup</strong>.</li>
+    <li>Click <strong>Create Backup</strong>.</li>
+    <li>The system creates a timestamped ZIP file in your backup folder.</li>
+    <li>The backup folder can also be opened directly from the <strong>File</strong> menu: <kbd>Ctrl+B</kbd>.</li>
+  </ol>
+
+  <h3>Restoring from a Backup</h3>
+  <ol class="steps">
+    <li>Go to <strong>Settings → System Utilities → Restore</strong>.</li>
+    <li>Select the backup ZIP file you want to restore.</li>
+    <li>Click <strong>Restore</strong>. The application will reload with the restored data.</li>
+  </ol>
+
+  <h3>Backup Folder Location</h3>
+  <p>Backups are stored in your Windows AppData folder:</p>
+  <p><code>%APPDATA%\industrial-erp\backups\</code></p>
+  <p>You can open this folder any time from the <strong>File → Open Backup Folder</strong> menu item.</p>
+
+  <div class="info-box tip">
+    Copy your backup files to an external drive or cloud storage (like Google Drive or OneDrive) for off-site protection.
+  </div>
+</section>
+
+<!-- ───────────────────────────── SHORTCUTS -->
+<section id="shortcuts">
+  <h2>Keyboard Shortcuts</h2>
+  <table>
+    <tr><th>Shortcut</th><th>Action</th></tr>
+    <tr><td><kbd>Alt+Left</kbd></td><td>Go back to the previous page</td></tr>
+    <tr><td><kbd>Alt+Right</kbd></td><td>Go forward to the next page</td></tr>
+    <tr><td><kbd>Ctrl+R</kbd></td><td>Reload the current page</td></tr>
+    <tr><td><kbd>Ctrl+B</kbd></td><td>Open the backup folder in Windows Explorer</td></tr>
+    <tr><td><kbd>Ctrl+Q</kbd></td><td>Quit the application</td></tr>
+  </table>
+
+  <div class="info-box ok" style="margin-top:40px;">
+    <strong>Need more help?</strong> Contact your system administrator or the support team for additional assistance.
+  </div>
+
+  <p style="margin-top:32px; color:var(--text-muted); font-size:0.82rem; text-align:center;">
+    Industrial ERP System &copy; 2026 — User Manual v1.0
+  </p>
+</section>
+
+</div><!-- /content -->
+
+<script>
+// Highlight active sidebar link on scroll
+(function(){
+  var links = document.querySelectorAll('#sidebar nav a[href^="#"]');
+  var sections = [];
+  links.forEach(function(l){ var s = document.querySelector(l.getAttribute('href')); if(s) sections.push(s); });
+  function onScroll(){
+    var scrollY = window.pageYOffset;
+    var active = null;
+    sections.forEach(function(s){ if(s.offsetTop <= scrollY + 80) active = s; });
+    links.forEach(function(l){ l.classList.remove('active'); });
+    if(active) document.querySelector('#sidebar nav a[href="#' + active.id + '"]').classList.add('active');
+  }
+  window.addEventListener('scroll', onScroll);
+  onScroll();
+})();
+</script>
+</body>
+</html>

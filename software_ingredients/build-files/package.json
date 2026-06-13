@@ -1,0 +1,65 @@
+{
+  "name": "industrial-erp",
+  "version": "1.0.0",
+  "description": "Industrial ERP System",
+  "main": "main.js",
+  "author": "Industrial ERP System",
+  "private": true,
+  "scripts": {
+    "start": "electron .",
+    "build": "electron-builder --win --x64"
+  },
+  "devDependencies": {
+    "electron": "28.3.3",
+    "electron-builder": "24.13.3"
+  },
+  "build": {
+    "appId": "com.industrial.erp",
+    "productName": "Industrial ERP System",
+    "copyright": "Copyright 2026 Industrial ERP System",
+    "directories": {
+      "output": "C:\\Industrial-ERP-Builder\\dist",
+      "buildResources": "."
+    },
+    "files": [
+      "main.js",
+      "splash.html",
+      "user-manual.html",
+      "logo.png",
+      "icon.ico"
+    ],
+    "extraResources": [
+      {
+        "from": "..\\php-8.3.31-Win32-vs16-x64",
+        "to": "runtime/php"
+      },
+      {
+        "from": "..\\industrial-erp-system",
+        "to": "runtime/laravel",
+        "filter": ["**/*"]
+      },
+      {
+        "from": "user-manual.html",
+        "to": "user-manual.html"
+      }
+    ],
+    "win": {
+      "target": "nsis",
+      "icon": "icon.ico"
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": false,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "Industrial ERP System",
+      "uninstallDisplayName": "Industrial ERP System",
+      "installerIcon": "icon.ico",
+      "uninstallerIcon": "icon.ico",
+      "installerHeaderIcon": "icon.ico",
+      "deleteAppDataOnUninstall": false,
+      "runAfterFinish": true
+    }
+  }
+}
