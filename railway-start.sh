@@ -14,10 +14,18 @@ export DB_DATABASE="$(pwd)/storage/database.sqlite"
 # Disable wkhtmltopdf on Railway (Linux binary not available via composer)
 export WKHTML_PDF_BINARY=""
 
-# Railway provides APP_URL via env var — fall back to localhost for safety
+# Railway provides APP_URL via env var — must be the full HTTPS URL
 if [ -z "$APP_URL" ]; then
-  export APP_URL="http://localhost:${PORT:-8000}"
+  export APP_URL="https://industrial-erp-enterprise-resource-planning-soft-production.up.railway.app"
 fi
+
+# Fix asset URL to match APP_URL
+export ASSET_URL="${APP_URL}"
+
+# Session must use same-site=lax and secure=true for Railway HTTPS
+export SESSION_SECURE_COOKIE=true
+export SESSION_SAME_SITE=lax
+export SESSION_DOMAIN=".railway.app"
 
 # ─── 2. DIRECTORY SETUP ─────────────────────────────────────────────────────
 
@@ -78,6 +86,8 @@ php artisan storage:link --force 2>/dev/null || echo "Storage link skipped"
 # ─── 9. PRODUCTION CACHE ─────────────────────────────────────────────────────
 
 echo "Caching config, routes, views..."
+php artisan config:clear
+php artisan view:clear
 php artisan config:cache
 php artisan route:cache
 php artisan view:cache
