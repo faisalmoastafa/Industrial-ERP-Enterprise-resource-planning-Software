@@ -4,7 +4,7 @@ A full-featured desktop ERP application for industrial businesses — built with
 
 <div align="center">
 
-[![Live Demo](https://img.shields.io/badge/🚀_Live_Demo-Railway-blueviolet?style=for-the-badge)](https://RAILWAY_URL_HERE)
+[![Live Demo](https://img.shields.io/badge/🚀_Live_Demo-Railway-blueviolet?style=for-the-badge)](https://industrial-erp-enterprise-resource-planning-soft-production.up.railway.app)
 [![Download EXE](https://img.shields.io/badge/⬇️_Download_Installer-.exe-blue?style=for-the-badge)](https://github.com/faisalmoastafa/Industrial-ERP-Enterprise-resource-planning-Software/releases/latest)
 
 </div>
@@ -23,7 +23,7 @@ A full-featured desktop ERP application for industrial businesses — built with
 
 ## Live Demo
 
-🌐 **[Try the live demo on Railway →](https://RAILWAY_URL_HERE)**
+🌐 **[Try the live demo on Railway →](https://industrial-erp-enterprise-resource-planning-soft-production.up.railway.app)**
 
 | Field | Value |
 |---|---|
