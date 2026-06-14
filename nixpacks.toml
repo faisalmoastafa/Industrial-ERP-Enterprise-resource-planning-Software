@@ -10,7 +10,7 @@ cmds = [
 ]
 
 [phases.build]
-cmds = ["echo 'Build complete'"]
+cmds = ["echo 'Build complete v2'"]
 
 [start]
 cmd = "bash railway-start.sh"
