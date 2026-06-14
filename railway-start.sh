@@ -1,7 +1,7 @@
 #!/bin/bash
 set -e
 
-echo "=== NECI-ERP Railway Startup ==="
+echo "=== Industrial ERP System Railway Startup ==="
 
 # ─── 1. ENVIRONMENT ─────────────────────────────────────────────────────────
 

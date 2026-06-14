@@ -15,10 +15,10 @@ class DatabaseSeeder extends Seeder
             return;
         }
 
-        if (!DB::table('users')->where('email', 'demo@neci-erp.com')->exists()) {
+        if (!DB::table('users')->where('email', 'demo@industrial-erp.com')->exists()) {
             DB::table('users')->insert([
                 'name'              => 'Demo Admin',
-                'email'             => 'demo@neci-erp.com',
+                'email'             => 'demo@industrial-erp.com',
                 'password'          => Hash::make('demo1234'),
                 'email_verified_at' => now(),
                 'created_at'        => now(),

@@ -27,7 +27,7 @@ A full-featured desktop ERP application for industrial businesses — built with
 
 | Field | Value |
 |---|---|
-| Email | `demo@neci-erp.com` |
+| Email | `demo@industrial-erp.com` |
 | Password | `demo1234` |
 
 > Demo resets periodically. Data you enter may be cleared.
@@ -38,9 +38,9 @@ A full-featured desktop ERP application for industrial businesses — built with
 
 💾 **[Download the latest installer (.exe) →](https://github.com/faisalmoastafa/Industrial-ERP-Enterprise-resource-planning-Software/releases/latest)**
 
-1. Download `NECI-ERP-Setup.exe` from the link above
+1. Download `Industrial-ERP-Setup.exe` from the link above
 2. Run the installer (click **Yes** if Windows asks for permission)
-3. Launch **NECI ERP** from your desktop
+3. Launch **Industrial ERP System** from your desktop
 4. Login with: `superadmin@erp.com` / `superadmin`
 
 > No internet required. Runs fully offline on Windows 10/11.
