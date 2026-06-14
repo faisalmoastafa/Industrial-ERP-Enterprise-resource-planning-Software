@@ -55,7 +55,16 @@ php artisan migrate --force
 
 # ─── 7. SEED DATA ────────────────────────────────────────────────────────────
 
-echo "Seeding permissions and superadmin..."
+echo "Seeding currency..."
+php artisan db:seed --class="Modules\Currency\Database\Seeders\CurrencyDatabaseSeeder" --force 2>/dev/null || echo "CurrencySeeder skipped (already seeded)"
+
+echo "Seeding settings..."
+php artisan db:seed --class="Modules\Setting\Database\Seeders\SettingDatabaseSeeder" --force 2>/dev/null || echo "SettingSeeder skipped (already seeded)"
+
+echo "Seeding permissions and roles..."
+php artisan db:seed --class="Modules\User\Database\Seeders\UserDatabaseSeeder" --force 2>/dev/null || echo "UserDatabaseSeeder skipped (already seeded)"
+
+echo "Seeding superadmin user..."
 php artisan db:seed --class=Database\\Seeders\\SuperUserSeeder --force 2>/dev/null || echo "SuperUserSeeder skipped (already seeded)"
 
 echo "Seeding demo user (if APP_DEMO=true)..."
